@@ -6,6 +6,8 @@ import {
   VirtuosoMessageList,
   VirtuosoMessageListProps,
   ListScrollLocation,
+  useVirtuosoLocation,
+  useVirtuosoMethods,
 } from "@virtuoso.dev/message-list";
 import React from "react";
 import { useEffect, useRef, useState } from "react";
@@ -79,6 +81,44 @@ const Header: VirtuosoProps["Header"] = ({ context }) => {
   );
 };
 
+const StickyFooter: VirtuosoProps["StickyFooter"] = () => {
+  const location = useVirtuosoLocation();
+  const virtuosoMethods = useVirtuosoMethods();
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: 10,
+        right: 50,
+      }}
+    >
+      {location.bottomOffset > 200 && (
+        <>
+          <button
+            style={{
+              backgroundColor: "white",
+              border: "2px solid black",
+              borderRadius: "100%",
+              width: 30,
+              height: 30,
+              color: "black",
+            }}
+            onClick={() => {
+              virtuosoMethods.scrollToItem({
+                index: "LAST",
+                align: "end",
+                behavior: "auto",
+              });
+            }}
+          >
+            &#9660;
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function Home() {
   const [channels, setChannels] = useState<ChatChannel[]>(() => [
     new ChatChannel("general", 500),
@@ -141,6 +181,7 @@ export default function Home() {
           EmptyPlaceholder={EmptyPlaceholder}
           ItemContent={ItemContent}
           Header={Header}
+          StickyFooter={StickyFooter}
           computeItemKey={({ data }) => {
             if (data.id !== null) {
               return data.id;
