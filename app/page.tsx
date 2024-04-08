@@ -168,8 +168,24 @@ export default function Home() {
   );
   useEffect(() => {
     channel.onNewMessages = (messages) => {
+      const updatingMessageIds: number[] = [];
+      messageListRef.current?.data.map((item) => {
+        const updatedItem =
+          !item.delivered && messages.find((m) => m.localId === item.localId);
+        if (updatedItem) {
+          updatingMessageIds.push(updatedItem.id!);
+          return updatedItem;
+        } else {
+          return item;
+        }
+      });
+
+      const nonUpdatingMessages = messages.filter(
+        (m) => !updatingMessageIds.includes(m.id!),
+      );
+
       messageListRef.current?.data.append(
-        messages,
+        nonUpdatingMessages,
         ({ atBottom, scrollInProgress }) => {
           if (atBottom || scrollInProgress) {
             return "smooth";
@@ -180,7 +196,6 @@ export default function Home() {
         },
       );
     };
-
     if (!channel.loaded) {
       channel
         .getMessages({ limit: 20 })
@@ -226,6 +241,23 @@ export default function Home() {
           }}
         >
           Receive message from another user
+        </button>
+        <button
+          onClick={() => {
+            const tempMessage = channel.sendOwnMessage();
+            messageListRef.current?.data.append(
+              [tempMessage],
+              ({ scrollInProgress, atBottom }) => {
+                if (atBottom || scrollInProgress) {
+                  return "smooth";
+                } else {
+                  return "auto";
+                }
+              },
+            );
+          }}
+        >
+          Send own message
         </button>
       </div>
     </main>
