@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 interface MessageListContext {
   channel: ChatChannel;
   loadingNewer: boolean;
+  unseenMessages: number;
 }
 
 type VirtuosoProps = VirtuosoMessageListProps<ChatMessage, MessageListContext>;
@@ -81,7 +82,9 @@ const Header: VirtuosoProps["Header"] = ({ context }) => {
   );
 };
 
-const StickyFooter: VirtuosoProps["StickyFooter"] = () => {
+const StickyFooter: VirtuosoProps["StickyFooter"] = ({
+  context: { unseenMessages },
+}) => {
   const location = useVirtuosoLocation();
   const virtuosoMethods = useVirtuosoMethods();
   return (
@@ -94,6 +97,8 @@ const StickyFooter: VirtuosoProps["StickyFooter"] = () => {
     >
       {location.bottomOffset > 200 && (
         <>
+          {unseenMessages > 0 && <span>{unseenMessages} new messages</span>}
+
           <button
             style={{
               backgroundColor: "white",
@@ -120,6 +125,8 @@ const StickyFooter: VirtuosoProps["StickyFooter"] = () => {
 };
 
 export default function Home() {
+  const [unseenMessages, setUnseenMessages] = useState(0);
+
   const [channels, setChannels] = useState<ChatChannel[]>(() => [
     new ChatChannel("general", 500),
   ]);
@@ -133,6 +140,9 @@ export default function Home() {
 
   const onScroll = React.useCallback(
     (location: ListScrollLocation) => {
+      if (location.bottomOffset < 100) {
+        setUnseenMessages(0);
+      }
       // offset is 0 at the top, -totalScrollSize + viewportHeight at the bottom
       if (
         location.listOffset > -100 &&
@@ -157,6 +167,20 @@ export default function Home() {
     [channel, loadingNewer],
   );
   useEffect(() => {
+    channel.onNewMessages = (messages) => {
+      messageListRef.current?.data.append(
+        messages,
+        ({ atBottom, scrollInProgress }) => {
+          if (atBottom || scrollInProgress) {
+            return "smooth";
+          } else {
+            setUnseenMessages((val) => val + 1);
+            return false;
+          }
+        },
+      );
+    };
+
     if (!channel.loaded) {
       channel
         .getMessages({ limit: 20 })
@@ -177,7 +201,7 @@ export default function Home() {
       <VirtuosoMessageListLicense licenseKey="">
         <VirtuosoMessageList<ChatMessage, MessageListContext>
           onScroll={onScroll}
-          context={{ loadingNewer, channel }}
+          context={{ loadingNewer, channel, unseenMessages }}
           EmptyPlaceholder={EmptyPlaceholder}
           ItemContent={ItemContent}
           Header={Header}
@@ -195,6 +219,15 @@ export default function Home() {
           initialLocation={{ index: "LAST", align: "end" }}
         />
       </VirtuosoMessageListLicense>
+      <div style={{ display: "flex", gap: "1rem", padding: "1rem" }}>
+        <button
+          onClick={() => {
+            channel.createNewMessageFromAnotherUser();
+          }}
+        >
+          Receive message from another user
+        </button>
+      </div>
     </main>
   );
 }
