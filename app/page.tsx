@@ -129,6 +129,7 @@ export default function Home() {
 
   const [channels, setChannels] = useState<ChatChannel[]>(() => [
     new ChatChannel("general", 500),
+    new ChatChannel("fun", 500),
   ]);
   const [channel, setChannel] = useState(channels[0]);
   const [loadingNewer, setLoadingNewer] = React.useState(false);
@@ -213,52 +214,102 @@ export default function Home() {
 
   return (
     <main>
-      <VirtuosoMessageListLicense licenseKey="">
-        <VirtuosoMessageList<ChatMessage, MessageListContext>
-          onScroll={onScroll}
-          context={{ loadingNewer, channel, unseenMessages }}
-          EmptyPlaceholder={EmptyPlaceholder}
-          ItemContent={ItemContent}
-          Header={Header}
-          StickyFooter={StickyFooter}
-          computeItemKey={({ data }) => {
-            if (data.id !== null) {
-              return data.id;
-            } else {
-              return `l-${data.localId}`;
-            }
-          }}
-          style={{ height: "calc(100vh - 50px)" }}
-          ref={messageListRef}
-          initialData={channel.messages}
-          initialLocation={{ index: "LAST", align: "end" }}
-        />
-      </VirtuosoMessageListLicense>
-      <div style={{ display: "flex", gap: "1rem", padding: "1rem" }}>
-        <button
-          onClick={() => {
-            channel.createNewMessageFromAnotherUser();
+      <div style={{ display: "flex", flexDirection: "row" }}>
+        <div
+          style={{
+            padding: "1rem",
+            minWidth: 200,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: "1rem",
           }}
         >
-          Receive message from another user
-        </button>
-        <button
-          onClick={() => {
-            const tempMessage = channel.sendOwnMessage();
-            messageListRef.current?.data.append(
-              [tempMessage],
-              ({ scrollInProgress, atBottom }) => {
-                if (atBottom || scrollInProgress) {
-                  return "smooth";
-                } else {
-                  return "auto";
-                }
-              },
+          <h2>Channels</h2>
+          {channels.map((c) => {
+            return (
+              <button
+                key={c.name}
+                onClick={() => {
+                  if (c !== channel) {
+                    setChannel(c);
+                    messageListRef.current?.data.replace(c.messages, {
+                      index: "LAST",
+                      align: "end",
+                    });
+                  }
+                }}
+              >
+                {c.name}
+              </button>
             );
-          }}
-        >
-          Send own message
-        </button>
+          })}
+
+          <button
+            onClick={() => {
+              const channel = new ChatChannel(`channel-${channels.length}`, 0);
+              setChannels([...channels, channel]);
+              setChannel(channel);
+              messageListRef.current?.data.replace(channel.messages, {
+                index: "LAST",
+                align: "end",
+              });
+            }}
+          >
+            Add channel
+          </button>
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <VirtuosoMessageListLicense licenseKey="">
+            <VirtuosoMessageList
+              onScroll={onScroll}
+              context={{ loadingNewer, channel, unseenMessages }}
+              EmptyPlaceholder={EmptyPlaceholder}
+              ItemContent={ItemContent}
+              Header={Header}
+              StickyFooter={StickyFooter}
+              computeItemKey={({ data }) => {
+                if (data.id !== null) {
+                  return data.id;
+                } else {
+                  return `l-${data.localId}`;
+                }
+              }}
+              style={{ height: "calc(100vh - 50px)" }}
+              ref={messageListRef}
+              initialData={channel.messages}
+              initialLocation={{ index: "LAST", align: "end" }}
+              shortSizeAlign="bottom-smooth"
+            />
+          </VirtuosoMessageListLicense>
+          <div style={{ display: "flex", gap: "1rem", padding: "1rem" }}>
+            <button
+              onClick={() => {
+                channel.createNewMessageFromAnotherUser();
+              }}
+            >
+              Receive message from another user
+            </button>
+            <button
+              onClick={() => {
+                const tempMessage = channel.sendOwnMessage();
+                messageListRef.current?.data.append(
+                  [tempMessage],
+                  ({ scrollInProgress, atBottom }) => {
+                    if (atBottom || scrollInProgress) {
+                      return "smooth";
+                    } else {
+                      return "auto";
+                    }
+                  },
+                );
+              }}
+            >
+              Send own message
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   );
