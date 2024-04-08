@@ -5,11 +5,14 @@ import {
   VirtuosoMessageListLicense,
   VirtuosoMessageList,
   VirtuosoMessageListProps,
+  ListScrollLocation,
 } from "@virtuoso.dev/message-list";
+import React from "react";
 import { useEffect, useRef, useState } from "react";
 
 interface MessageListContext {
   channel: ChatChannel;
+  loadingNewer: boolean;
 }
 
 type VirtuosoProps = VirtuosoMessageListProps<ChatMessage, MessageListContext>;
@@ -70,21 +73,56 @@ const ItemContent: VirtuosoProps["ItemContent"] = ({
   );
 };
 
+const Header: VirtuosoProps["Header"] = ({ context }) => {
+  return (
+    <div style={{ height: 30 }}>{context.loadingNewer ? "Loading..." : ""}</div>
+  );
+};
+
 export default function Home() {
   const [channels, setChannels] = useState<ChatChannel[]>(() => [
     new ChatChannel("general", 500),
   ]);
   const [channel, setChannel] = useState(channels[0]);
+  const [loadingNewer, setLoadingNewer] = React.useState(false);
 
   const messageListRef =
     useRef<VirtuosoMessageListMethods<ChatMessage, MessageListContext>>(null);
 
+  const firstMessageId = useRef<number | null>(null);
+
+  const onScroll = React.useCallback(
+    (location: ListScrollLocation) => {
+      // offset is 0 at the top, -totalScrollSize + viewportHeight at the bottom
+      if (
+        location.listOffset > -100 &&
+        !loadingNewer &&
+        firstMessageId.current
+      ) {
+        setLoadingNewer(true);
+        channel
+          .getMessages({ limit: 20, before: firstMessageId.current })
+          .then((messages) => {
+            if (messages !== null) {
+              firstMessageId.current = messages[0].id;
+              messageListRef.current?.data.prepend(messages);
+              setLoadingNewer(false);
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      }
+    },
+    [channel, loadingNewer],
+  );
   useEffect(() => {
     if (!channel.loaded) {
       channel
         .getMessages({ limit: 20 })
         .then((messages) => {
           if (messages !== null) {
+            firstMessageId.current = messages[0].id;
             messageListRef.current?.data.append(messages);
           }
         })
@@ -98,9 +136,11 @@ export default function Home() {
     <main>
       <VirtuosoMessageListLicense licenseKey="">
         <VirtuosoMessageList<ChatMessage, MessageListContext>
-          context={{ channel }}
+          onScroll={onScroll}
+          context={{ loadingNewer, channel }}
           EmptyPlaceholder={EmptyPlaceholder}
           ItemContent={ItemContent}
+          Header={Header}
           computeItemKey={({ data }) => {
             if (data.id !== null) {
               return data.id;
