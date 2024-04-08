@@ -4,8 +4,19 @@ import {
   VirtuosoMessageListMethods,
   VirtuosoMessageListLicense,
   VirtuosoMessageList,
+  VirtuosoMessageListProps,
 } from "@virtuoso.dev/message-list";
 import { useEffect, useRef, useState } from "react";
+
+interface MessageListContext {
+  channel: ChatChannel;
+}
+
+type VirtuosoProps = VirtuosoMessageListProps<ChatMessage, MessageListContext>;
+
+const EmptyPlaceholder: VirtuosoProps["EmptyPlaceholder"] = ({ context }) => {
+  return <div>{!context.channel.loaded ? "Loading..." : "Empty"}</div>;
+};
 
 export default function Home() {
   const [channels, setChannels] = useState<ChatChannel[]>(() => [
@@ -14,7 +25,7 @@ export default function Home() {
   const [channel, setChannel] = useState(channels[0]);
 
   const messageListRef =
-    useRef<VirtuosoMessageListMethods<ChatMessage, {}>>(null);
+    useRef<VirtuosoMessageListMethods<ChatMessage, MessageListContext>>(null);
 
   useEffect(() => {
     if (!channel.loaded) {
@@ -34,7 +45,9 @@ export default function Home() {
   return (
     <main>
       <VirtuosoMessageListLicense licenseKey="">
-        <VirtuosoMessageList<ChatMessage, {}>
+        <VirtuosoMessageList<ChatMessage, MessageListContext>
+          context={{ channel }}
+          EmptyPlaceholder={EmptyPlaceholder}
           computeItemKey={({ data }) => {
             if (data.id !== null) {
               return data.id;
