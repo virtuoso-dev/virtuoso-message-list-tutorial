@@ -5,7 +5,7 @@ import {
   VirtuosoMessageListLicense,
   VirtuosoMessageList,
 } from "@virtuoso.dev/message-list";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
   const [channels, setChannels] = useState<ChatChannel[]>(() => [
@@ -15,6 +15,22 @@ export default function Home() {
 
   const messageListRef =
     useRef<VirtuosoMessageListMethods<ChatMessage, {}>>(null);
+
+  useEffect(() => {
+    if (!channel.loaded) {
+      channel
+        .getMessages({ limit: 20 })
+        .then((messages) => {
+          if (messages !== null) {
+            messageListRef.current?.data.append(messages);
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    }
+  }, [channel]);
+
   return (
     <main>
       <VirtuosoMessageListLicense licenseKey="">
