@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ngneat/falso": "^7.2.0",
+    "@virtuoso.dev/message-list": "^1.2.1",
     "next": "14.1.4",
     "react": "^18",
     "react-dom": "^18"
