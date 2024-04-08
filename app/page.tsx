@@ -35,6 +35,13 @@ export default function Home() {
     <main>
       <VirtuosoMessageListLicense licenseKey="">
         <VirtuosoMessageList<ChatMessage, {}>
+          computeItemKey={({ data }) => {
+            if (data.id !== null) {
+              return data.id;
+            } else {
+              return `l-${data.localId}`;
+            }
+          }}
           style={{ height: "calc(100vh - 50px)" }}
           ref={messageListRef}
           initialData={channel.messages}
