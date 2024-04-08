@@ -18,6 +18,58 @@ const EmptyPlaceholder: VirtuosoProps["EmptyPlaceholder"] = ({ context }) => {
   return <div>{!context.channel.loaded ? "Loading..." : "Empty"}</div>;
 };
 
+const ItemContent: VirtuosoProps["ItemContent"] = ({
+  data: message,
+  context,
+}) => {
+  const ownMessage = context.channel.currentUser === message.user;
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: "1rem",
+        paddingBottom: "2rem",
+        flexDirection: ownMessage ? "row-reverse" : "row",
+      }}
+    >
+      <img
+        src={message.user.avatar}
+        style={{
+          borderRadius: "100%",
+          width: 30,
+          height: 30,
+          border: "1px solid #ccc",
+        }}
+      />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.5rem",
+          maxWidth: "50%",
+        }}
+      >
+        <div
+          style={{
+            background: ownMessage ? "#3A5BC7" : "#F0F0F3",
+            color: ownMessage ? "white" : "black",
+            borderRadius: "1rem",
+            padding: "1rem",
+            ...(ownMessage
+              ? { borderTopRightRadius: "0" }
+              : { borderTopLeftRadius: "auto" }),
+          }}
+        >
+          {message.message}
+        </div>
+        {!message.delivered && (
+          <div style={{ textAlign: "right" }}>Delivering...</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   const [channels, setChannels] = useState<ChatChannel[]>(() => [
     new ChatChannel("general", 500),
@@ -48,6 +100,7 @@ export default function Home() {
         <VirtuosoMessageList<ChatMessage, MessageListContext>
           context={{ channel }}
           EmptyPlaceholder={EmptyPlaceholder}
+          ItemContent={ItemContent}
           computeItemKey={({ data }) => {
             if (data.id !== null) {
               return data.id;
@@ -58,6 +111,7 @@ export default function Home() {
           style={{ height: "calc(100vh - 50px)" }}
           ref={messageListRef}
           initialData={channel.messages}
+          initialLocation={{ index: "LAST", align: "end" }}
         />
       </VirtuosoMessageListLicense>
     </main>
