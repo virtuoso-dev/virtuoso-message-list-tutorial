@@ -105,6 +105,9 @@ const ItemContent: MessageListProps['ItemContent'] = ({ data: message, context }
 function App() {
   const [channelsData, setChannelsData] = useState<ChannelsData>(() => ({
     'general': null,
+    'marketing': null,
+    'sales': null,
+    'frontend': null,
   }))
 
   const [currentChannel, setCurrentChannel] = useState<string>('general')
@@ -178,87 +181,117 @@ function App() {
   }, [currentUser, otherUser, setMessageListData, messageListData])
 
 
-  return <div><VirtuosoMessageListLicense licenseKey="">
-    <VirtuosoMessageList<ChatMessage, MessageListContext>
-      style={{ height: '80vh' }}
-      context={{ currentUser, loadingNewer, unseenMessages }}
-      EmptyPlaceholder={EmptyPlaceholder}
-      Header={Header}
-      StickyFooter={StickyFooter}
-      onScroll={onScroll}
-      ItemContent={ItemContent}
-      data={messageListData}
-      computeItemKey={computeItemKey}
-    />
+  const switchChannel = useCallback((channel: string) => {
+    setChannelsData((current) => {
+      return {
+        ...current,
+        [channel]: {
+          data: current[channel]?.data ?? null,
+          scrollModifier: InitialDataScrollModifier,
+        },
+      }
+    })
+    setCurrentChannel(channel)
+  }, [])
+
+  return <div style={{ display: 'flex', gap: '2rem' }}>
+    <div>
+      <ul>
+        {Object.keys(channelsData).map((channelName) => (
+          <li key={channelName}>
+            <button style={{ fontWeight: currentChannel === channelName ? 'bold' : 'normal' }} onClick={() => switchChannel(channelName)}>
+              {channelName}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div style={{ height: 'calc(100vh - 6rem)', display: 'flex', flexDirection: 'column', flexGrow: '1' }}>
+      <VirtuosoMessageListLicense licenseKey="">
+        <VirtuosoMessageList<ChatMessage, MessageListContext>
+          style={{ height: '80vh' }}
+          context={{ currentUser, loadingNewer, unseenMessages }}
+          EmptyPlaceholder={EmptyPlaceholder}
+          Header={Header}
+          StickyFooter={StickyFooter}
+          onScroll={onScroll}
+          ItemContent={ItemContent}
+          data={messageListData}
+          computeItemKey={computeItemKey}
+        />
+      </VirtuosoMessageListLicense>
 
 
-    <button
-      onClick={() => {
-        const localMessage = createLocalMessage(currentUser)
-        setMessageListData((current) => {
-          return {
-            data: [...(current?.data ?? []), localMessage],
-            scrollModifier: {
-              type: 'auto-scroll-to-bottom',
-              autoScroll: ({ atBottom }) => {
-                if (atBottom) {
-                  return 'smooth'
-                }
-                return 'auto'
-              },
-            },
-          }
-        })
-        // simulate receiving the confirmation from the server
-        setTimeout(() => {
-          setMessageListData((current) => {
-            return {
-              data: current?.data?.map((item) => {
-                if (item.localId === localMessage.localId) {
-                  return { ...item, localId: null, id: nextRemoteId(), delivered: true }
-                }
-                return item
-              }),
-              scrollModifier: {
-                type: 'auto-scroll-to-bottom',
-                autoScroll: ({ atBottom }) => {
-                  if (atBottom) {
-                    return 'smooth'
-                  }
-                  return false
+      <div>
+        <button
+          onClick={() => {
+            const localMessage = createLocalMessage(currentUser)
+            setMessageListData((current) => {
+              return {
+                data: [...(current?.data ?? []), localMessage],
+                scrollModifier: {
+                  type: 'auto-scroll-to-bottom',
+                  autoScroll: ({ atBottom }) => {
+                    if (atBottom) {
+                      return 'smooth'
+                    }
+                    return 'auto'
+                  },
                 },
-              },
-            }
-          })
-        }, 1000)
-      }}
-    >
-      Send
-    </button>
-
-    <button
-      onClick={() => {
-        const otherMessages = [createMessage(otherUser), createMessage(otherUser)]
-        setMessageListData((current) => {
-          return {
-            data: [...(current?.data ?? []), ...otherMessages],
-            scrollModifier: {
-              type: 'auto-scroll-to-bottom',
-              autoScroll: ({ atBottom, scrollInProgress }) => {
-                if (atBottom || scrollInProgress) {
-                  return 'smooth'
+              }
+            })
+            // simulate receiving the confirmation from the server
+            setTimeout(() => {
+              setMessageListData((current) => {
+                return {
+                  data: current?.data?.map((item) => {
+                    if (item.localId === localMessage.localId) {
+                      return { ...item, localId: null, id: nextRemoteId(), delivered: true }
+                    }
+                    return item
+                  }),
+                  scrollModifier: {
+                    type: 'auto-scroll-to-bottom',
+                    autoScroll: ({ atBottom }) => {
+                      if (atBottom) {
+                        return 'smooth'
+                      }
+                      return false
+                    },
+                  },
                 }
-                setUnseenMessages((prev) => prev + otherMessages.length)
-                return false
-              },
-            },
-          }
-        })
-      }}
-    >
-      Receive 2 messages
-    </button>
-  </VirtuosoMessageListLicense>
+              })
+            }, 1000)
+          }}
+        >
+          Send
+        </button>
+
+        <button
+          onClick={() => {
+            const otherMessages = [createMessage(otherUser), createMessage(otherUser)]
+            setMessageListData((current) => {
+              return {
+                data: [...(current?.data ?? []), ...otherMessages],
+                scrollModifier: {
+                  type: 'auto-scroll-to-bottom',
+                  autoScroll: ({ atBottom, scrollInProgress }) => {
+                    if (atBottom || scrollInProgress) {
+                      return 'smooth'
+                    }
+                    setUnseenMessages((prev) => prev + otherMessages.length)
+                    return false
+                  },
+                },
+              }
+            })
+          }}
+        >
+          Receive 2 messages
+        </button>
+      </div>
+    </div>
   </div>
 }
 
