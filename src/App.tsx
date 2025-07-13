@@ -11,6 +11,7 @@ type ChannelsData = Record<string, ChannelData>
 interface MessageListContext {
   currentUser: ChatUser
   loadingNewer: boolean
+  unseenMessages: number
 }
 
 type MessageListProps = VirtuosoMessageListProps<ChatMessage, MessageListContext>
@@ -23,6 +24,16 @@ const InitialDataScrollModifier: ScrollModifier = {
     align: 'end',
   },
   purgeItemSizes: true,
+}
+
+const ReceivedMessagesScrollModifier: ScrollModifier = {
+  type: 'auto-scroll-to-bottom',
+  autoScroll: ({ atBottom, scrollInProgress }) => {
+    if (atBottom || scrollInProgress) {
+      return 'smooth'
+    }
+    return false
+  },
 }
 
 // This function is used to generate key properties for the messaqge list items based on the data rendered.
@@ -42,7 +53,7 @@ const Header: MessageListProps['Header'] = ({ context }) => {
   return <div style={{ height: 30 }}>{context.loadingNewer ? 'Loading...' : ''}</div>
 }
 
-const StickyFooter: MessageListProps['StickyFooter'] = () => {
+const StickyFooter: MessageListProps['StickyFooter'] = ({ context: { unseenMessages } }) => {
   const location = useVirtuosoLocation()
   const virtuosoMethods = useVirtuosoMethods()
   return (
@@ -55,6 +66,7 @@ const StickyFooter: MessageListProps['StickyFooter'] = () => {
     >
       {location.bottomOffset > 200 && (
         <>
+          {unseenMessages > 0 && <span>{unseenMessages} new messages</span>}
           <button
             style={{
               backgroundColor: 'white',
@@ -106,6 +118,7 @@ function App() {
   }))
 
   const [currentChannel, setCurrentChannel] = useState<string>('general')
+  const [unseenMessages, setUnseenMessages] = useState(0);
 
   const [currentUser, otherUser] = useMemo(() => {
     return [createUser(1), createUser(2)]
@@ -132,6 +145,9 @@ function App() {
   // prepend older messages when the user scrolls to the top
   const onScroll = useCallback(
     (location: ListScrollLocation) => {
+      if (location.bottomOffset < 100) {
+        setUnseenMessages(0)
+      }
       // offset is 0 at the top, -totalScrollSize + viewportHeight at the bottom
       if (location.listOffset > -100 && !loadingNewer && messageListData !== null && messageListData.data?.length) {
         setLoadingNewer(true)
@@ -175,7 +191,7 @@ function App() {
   return <div><VirtuosoMessageListLicense licenseKey="">
     <VirtuosoMessageList<ChatMessage, MessageListContext>
       style={{ height: '80vh' }}
-      context={{ currentUser, loadingNewer }}
+      context={{ currentUser, loadingNewer, unseenMessages }}
       EmptyPlaceholder={EmptyPlaceholder}
       Header={Header}
       StickyFooter={StickyFooter}
@@ -185,6 +201,28 @@ function App() {
       computeItemKey={computeItemKey}
     />
 
+    <button
+      onClick={() => {
+        const otherMessages = [createMessage(otherUser), createMessage(otherUser)]
+        setMessageListData((current) => {
+          return {
+            data: [...(current?.data ?? []), ...otherMessages],
+            scrollModifier: {
+              type: 'auto-scroll-to-bottom',
+              autoScroll: ({ atBottom, scrollInProgress }) => {
+                if (atBottom || scrollInProgress) {
+                  return 'smooth'
+                }
+                setUnseenMessages((prev) => prev + otherMessages.length)
+                return false
+              },
+            },
+          }
+        })
+      }}
+    >
+      Receive 2 messages
+    </button>
   </VirtuosoMessageListLicense>
   </div>
 }
