@@ -23,14 +23,18 @@ export function createUser(id: number): ChatUser {
   }
 }
 
-let remoteIdCounter = 0
+export let remoteIdCounter = 0
+
+export function nextRemoteId(): number {
+  return ++remoteIdCounter
+}
 
 export function createMessage(user: ChatUser): ChatMessage {
   const message = randSentence({
     length: randNumber({ min: 1, max: 5 }),
   }).join(' ')
   return {
-    id: ++remoteIdCounter,
+    id: nextRemoteId(),
     user,
     message,
     delivered: true,

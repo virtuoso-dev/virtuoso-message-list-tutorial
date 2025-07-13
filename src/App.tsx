@@ -1,6 +1,6 @@
 import { useVirtuosoLocation, useVirtuosoMethods, VirtuosoMessageList, VirtuosoMessageListLicense, type DataWithScrollModifier, type ListScrollLocation, type ScrollModifier, type VirtuosoMessageListProps } from "@virtuoso.dev/message-list"
-import { createMessage, createUser, type ChatMessage, type ChatUser } from "./chat"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { createLocalMessage, createMessage, createUser, nextRemoteId, type ChatMessage, type ChatUser } from "./chat"
 
 // The channel data type defines the `data` prop passed to the VirtuosoMessageList component - an object defining the data to display and optional instructions on how the scroll location should change.
 type ChannelData = DataWithScrollModifier<ChatMessage> | null
@@ -24,16 +24,6 @@ const InitialDataScrollModifier: ScrollModifier = {
     align: 'end',
   },
   purgeItemSizes: true,
-}
-
-const ReceivedMessagesScrollModifier: ScrollModifier = {
-  type: 'auto-scroll-to-bottom',
-  autoScroll: ({ atBottom, scrollInProgress }) => {
-    if (atBottom || scrollInProgress) {
-      return 'smooth'
-    }
-    return false
-  },
 }
 
 // This function is used to generate key properties for the messaqge list items based on the data rendered.
@@ -200,6 +190,51 @@ function App() {
       data={messageListData}
       computeItemKey={computeItemKey}
     />
+
+
+    <button
+      onClick={() => {
+        const localMessage = createLocalMessage(currentUser)
+        setMessageListData((current) => {
+          return {
+            data: [...(current?.data ?? []), localMessage],
+            scrollModifier: {
+              type: 'auto-scroll-to-bottom',
+              autoScroll: ({ atBottom }) => {
+                if (atBottom) {
+                  return 'smooth'
+                }
+                return 'auto'
+              },
+            },
+          }
+        })
+        // simulate receiving the confirmation from the server
+        setTimeout(() => {
+          setMessageListData((current) => {
+            return {
+              data: current?.data?.map((item) => {
+                if (item.localId === localMessage.localId) {
+                  return { ...item, localId: null, id: nextRemoteId(), delivered: true }
+                }
+                return item
+              }),
+              scrollModifier: {
+                type: 'auto-scroll-to-bottom',
+                autoScroll: ({ atBottom }) => {
+                  if (atBottom) {
+                    return 'smooth'
+                  }
+                  return false
+                },
+              },
+            }
+          })
+        }, 1000)
+      }}
+    >
+      Send
+    </button>
 
     <button
       onClick={() => {
