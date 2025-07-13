@@ -1,4 +1,4 @@
-import { VirtuosoMessageList, VirtuosoMessageListLicense, type DataWithScrollModifier, type ScrollModifier, type VirtuosoMessageListProps } from "@virtuoso.dev/message-list"
+import { VirtuosoMessageList, VirtuosoMessageListLicense, type DataWithScrollModifier, type ListScrollLocation, type ScrollModifier, type VirtuosoMessageListProps } from "@virtuoso.dev/message-list"
 import { createMessage, createUser, type ChatMessage, type ChatUser } from "./chat"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
@@ -10,6 +10,7 @@ type ChannelsData = Record<string, ChannelData>
 
 interface MessageListContext {
   currentUser: ChatUser
+  loadingNewer: boolean
 }
 
 type MessageListProps = VirtuosoMessageListProps<ChatMessage, MessageListContext>
@@ -36,6 +37,10 @@ const computeItemKey: MessageListProps['computeItemKey'] = ({ data }) => {
 const EmptyPlaceholder: MessageListProps["EmptyPlaceholder"] = () => {
   return <div>Loading...</div>;
 };
+
+const Header: MessageListProps['Header'] = ({ context }) => {
+  return <div style={{ height: 30 }}>{context.loadingNewer ? 'Loading...' : ''}</div>
+}
 
 const ItemContent: MessageListProps['ItemContent'] = ({ data: message, context }) => {
   const ownMessage = context.currentUser === message.user
@@ -67,6 +72,12 @@ function App() {
 
   const [currentChannel, setCurrentChannel] = useState<string>('general')
 
+  const [currentUser, otherUser] = useMemo(() => {
+    return [createUser(1), createUser(2)]
+  }, [])
+
+  const [loadingNewer, setLoadingNewer] = useState(false)
+
   const messageListData = useMemo(() => {
     return channelsData[currentChannel] ?? null
   }, [channelsData, currentChannel])
@@ -83,10 +94,28 @@ function App() {
     [currentChannel]
   )
 
-
-  const [currentUser, otherUser] = useMemo(() => {
-    return [createUser(1), createUser(2)]
-  }, [])
+  // prepend older messages when the user scrolls to the top
+  const onScroll = useCallback(
+    (location: ListScrollLocation) => {
+      // offset is 0 at the top, -totalScrollSize + viewportHeight at the bottom
+      if (location.listOffset > -100 && !loadingNewer && messageListData !== null && messageListData.data?.length) {
+        setLoadingNewer(true)
+        setTimeout(() => {
+          setMessageListData((current) => {
+            return {
+              data: [
+                ...Array.from({ length: 10 }, (_, i) => createMessage(i % 3 === 0 ? currentUser : otherUser)),
+                ...(current?.data ?? []),
+              ],
+              scrollModifier: 'prepend',
+            }
+          })
+          setLoadingNewer(false)
+        }, 1000)
+      }
+    },
+    [loadingNewer, otherUser, currentUser, setMessageListData, messageListData]
+  )
 
   // initial data loading
   useEffect(() => {
@@ -97,7 +126,7 @@ function App() {
           if (current?.data?.length) {
             return current
           }
-          const messages = Array.from({ length: 120 }, (_, i) => createMessage(i % 3 === 0 ? currentUser : otherUser))
+          const messages = Array.from({ length: 20 }, (_, i) => createMessage(i % 3 === 0 ? currentUser : otherUser))
           return {
             data: messages,
             scrollModifier: InitialDataScrollModifier,
@@ -111,8 +140,10 @@ function App() {
   return <div><VirtuosoMessageListLicense licenseKey="">
     <VirtuosoMessageList<ChatMessage, MessageListContext>
       style={{ height: '80vh' }}
-      context={{ currentUser }}
+      context={{ currentUser, loadingNewer }}
       EmptyPlaceholder={EmptyPlaceholder}
+      Header={Header}
+      onScroll={onScroll}
       ItemContent={ItemContent}
       data={messageListData}
       computeItemKey={computeItemKey}
