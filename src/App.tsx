@@ -1,4 +1,4 @@
-import { VirtuosoMessageList, VirtuosoMessageListLicense, type DataWithScrollModifier, type ListScrollLocation, type ScrollModifier, type VirtuosoMessageListProps } from "@virtuoso.dev/message-list"
+import { useVirtuosoLocation, useVirtuosoMethods, VirtuosoMessageList, VirtuosoMessageListLicense, type DataWithScrollModifier, type ListScrollLocation, type ScrollModifier, type VirtuosoMessageListProps } from "@virtuoso.dev/message-list"
 import { createMessage, createUser, type ChatMessage, type ChatUser } from "./chat"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
@@ -40,6 +40,41 @@ const EmptyPlaceholder: MessageListProps["EmptyPlaceholder"] = () => {
 
 const Header: MessageListProps['Header'] = ({ context }) => {
   return <div style={{ height: 30 }}>{context.loadingNewer ? 'Loading...' : ''}</div>
+}
+
+const StickyFooter: MessageListProps['StickyFooter'] = () => {
+  const location = useVirtuosoLocation()
+  const virtuosoMethods = useVirtuosoMethods()
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: 10,
+        right: 50,
+      }}
+    >
+      {location.bottomOffset > 200 && (
+        <>
+          <button
+            style={{
+              backgroundColor: 'white',
+              border: '2px solid black',
+              borderRadius: '100%',
+              width: 30,
+              height: 30,
+              color: 'black',
+            }}
+            onClick={() => {
+              virtuosoMethods.scrollToItem({ index: 'LAST', align: 'end', behavior: 'auto' })
+            }}
+          >
+            {/* down arrow */}
+            &#9660;
+          </button>
+        </>
+      )}
+    </div>
+  )
 }
 
 const ItemContent: MessageListProps['ItemContent'] = ({ data: message, context }) => {
@@ -143,6 +178,7 @@ function App() {
       context={{ currentUser, loadingNewer }}
       EmptyPlaceholder={EmptyPlaceholder}
       Header={Header}
+      StickyFooter={StickyFooter}
       onScroll={onScroll}
       ItemContent={ItemContent}
       data={messageListData}
