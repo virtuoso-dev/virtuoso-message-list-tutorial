@@ -26,7 +26,7 @@ const InitialDataScrollModifier: ScrollModifier = {
   purgeItemSizes: true,
 }
 
-// This function is used to generate key properties for the messaqge list items based on the data rendered.
+// This function is used to generate key properties for the message list items based on the data rendered.
 // use a stable identifier to avoid unnecessary re-mounts when the message list data changes.
 const computeItemKey: MessageListProps['computeItemKey'] = ({ data }) => {
   if (data.id !== null) {
