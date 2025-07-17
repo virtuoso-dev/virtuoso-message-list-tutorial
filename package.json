@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@ngneat/falso": "^8.0.2",
-    "@virtuoso.dev/message-list": "file:../message-list/virtuoso.dev-message-list-0.0.0-semantic-release.tgz",
+    "@virtuoso.dev/message-list": "^1.13.0-alpha.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
